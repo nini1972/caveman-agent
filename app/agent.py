@@ -127,10 +127,12 @@ def watch_youtube_crystal(url: str) -> str:
             return "The crystal is clouded. I cannot find a valid YouTube Video ID in that URL."
         
         video_id = match.group(1)
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        
+        api = YouTubeTranscriptApi()
+        transcript_list = api.fetch(video_id)
         
         # Combine the text
-        transcript = " ".join([t['text'] for t in transcript_list])
+        transcript = " ".join([t.text for t in transcript_list])
         
         # We limit the transcript to the first 10,000 characters to keep it digestible
         return f"The crystal reveals the following spoken words: {transcript[:10000]}"
