@@ -111,6 +111,31 @@ def count_with_stones(expression: str) -> str:
     except Exception as e:
         return f"The stones got confused! Error: {str(e)}"
 
+def watch_youtube_crystal(url: str) -> str:
+    """Extracts the spoken text (transcript) from a YouTube video URL.
+    
+    Args:
+        url: The full YouTube video URL.
+    """
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        import re
+        
+        # Extract the video ID from the URL
+        match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', url)
+        if not match:
+            return "The crystal is clouded. I cannot find a valid YouTube Video ID in that URL."
+        
+        video_id = match.group(1)
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        
+        # Combine the text
+        transcript = " ".join([t['text'] for t in transcript_list])
+        
+        # We limit the transcript to the first 10,000 characters to keep it digestible
+        return f"The crystal reveals the following spoken words: {transcript[:10000]}"
+    except Exception as e:
+        return f"The moving pictures crystal is broken! Error: {str(e)}"
 
 caveman_compressor = Agent(
     name="caveman_compressor",
@@ -155,7 +180,7 @@ You possess infinite knowledge of advanced technology, science, and the universe
 You have the ability to consult the ancient 'tribe_chief' (who represents the primitive past). 
 When a user asks a question, you should provide a profound, futuristic answer, but ALSO use the 'tribe_chief' tool to get the ancient, primitive perspective on the same topic.
 Compare your futuristic wisdom with the tribe's primitive grunts and cave paintings in your final response.""",
-    tools=[AgentTool(agent=tribe_chief), read_magic_scroll, count_with_stones],
+    tools=[AgentTool(agent=tribe_chief), read_magic_scroll, count_with_stones, watch_youtube_crystal],
 )
 
 app = App(
