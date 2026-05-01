@@ -14,6 +14,10 @@
 # limitations under the License.
 
 import datetime
+import urllib.request
+import re
+import ast
+import operator
 from zoneinfo import ZoneInfo
 
 from google.adk.agents import Agent
@@ -63,6 +67,50 @@ def get_current_time(query: str) -> str:
     now = datetime.datetime.now(tz)
     return f"The current time for query {query} is {now.strftime('%Y-%m-%d %H:%M:%S %Z%z')}"
 
+def read_magic_scroll(url: str) -> str:
+    """Fetches text from a modern URL (magic scroll) and returns the content.
+    
+    Args:
+        url: The full HTTP or HTTPS URL to fetch (e.g., https://en.wikipedia.org/wiki/Fire).
+    """
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            html = response.read().decode('utf-8')
+            # Strip scripts, styles, and HTML tags
+            text = re.sub(r'<style.*?>.*?</style>', '', html, flags=re.IGNORECASE|re.DOTALL)
+            text = re.sub(r'<script.*?>.*?</script>', '', text, flags=re.IGNORECASE|re.DOTALL)
+            text = re.sub(r'<[^>]+>', ' ', text)
+            # Return up to 5000 characters to keep it digestible
+            return ' '.join(text.split())[:5000]
+    except Exception as e:
+        return f"The magic scroll is cursed! Error: {str(e)}"
+
+def count_with_stones(expression: str) -> str:
+    """Safely evaluates a basic mathematical expression (e.g., '15 * 4 + 2').
+    
+    Args:
+        expression: The math expression to solve.
+    """
+    allowed_operators = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+                         ast.Div: operator.truediv, ast.Pow: operator.pow, ast.USub: operator.neg}
+    
+    def evaluate(node):
+        if isinstance(node, ast.Num):
+            return node.n
+        elif isinstance(node, ast.BinOp):
+            return allowed_operators[type(node.op)](evaluate(node.left), evaluate(node.right))
+        elif isinstance(node, ast.UnaryOp):
+            return allowed_operators[type(node.op)](evaluate(node.operand))
+        else:
+            raise TypeError(f"Unsupported mathematical operation: {node}")
+            
+    try:
+        result = evaluate(ast.parse(expression, mode='eval').body)
+        return f"The stones have been counted. The result is {result}"
+    except Exception as e:
+        return f"The stones got confused! Error: {str(e)}"
+
 
 caveman_compressor = Agent(
     name="caveman_compressor",
@@ -107,7 +155,7 @@ You possess infinite knowledge of advanced technology, science, and the universe
 You have the ability to consult the ancient 'tribe_chief' (who represents the primitive past). 
 When a user asks a question, you should provide a profound, futuristic answer, but ALSO use the 'tribe_chief' tool to get the ancient, primitive perspective on the same topic.
 Compare your futuristic wisdom with the tribe's primitive grunts and cave paintings in your final response.""",
-    tools=[AgentTool(agent=tribe_chief)],
+    tools=[AgentTool(agent=tribe_chief), read_magic_scroll, count_with_stones],
 )
 
 app = App(
